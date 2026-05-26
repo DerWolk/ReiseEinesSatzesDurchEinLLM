@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embedding</title>
+    <style>
+:root {
+    --bg: #0f172a;
+    --bg-card: #1e293b;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --accent: #818cf8;
+    --accent-hover: #a5b4fc;
+    --border: #334155;
+    --code-bg: #1e293b;
+    --tag-bg: #312e81;
+    --tag-text: #c4b5fd;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 280px;
+    min-width: 280px;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.sidebar h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    padding-left: 8px;
+}
+
+.sidebar a {
+    display: block;
+    padding: 8px 12px;
+    color: var(--text);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 2px;
+    transition: background 0.15s;
+}
+
+.sidebar a:hover { background: rgba(129, 140, 248, 0.1); }
+.sidebar a.active { background: rgba(129, 140, 248, 0.15); color: var(--accent); font-weight: 600; }
+.sidebar .main-link { font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+.sidebar hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+/* Main content */
+.content {
+    margin-left: 280px;
+    max-width: 800px;
+    padding: 48px 48px 96px;
+    width: calc(100% - 280px);
+}
+
+h1 {
+    font-size: 2em;
+    margin-bottom: 16px;
+    color: #f1f5f9;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+}
+
+h2 {
+    font-size: 1.4em;
+    margin-top: 40px;
+    margin-bottom: 12px;
+    color: #f1f5f9;
+}
+
+h3 { font-size: 1.15em; margin-top: 28px; margin-bottom: 8px; }
+
+p { margin-bottom: 16px; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+code {
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.88em;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    border: 1px solid var(--border);
+}
+
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin: 16px 0;
+}
+
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.85em;
+    line-height: 1.6;
+}
+
+blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: 16px;
+    color: var(--text-muted);
+    margin: 16px 0;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 16px 0;
+}
+
+th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 0.9em;
+}
+
+th { background: var(--bg-card); font-weight: 600; }
+
+/* SVG embeds */
+.svg-embed {
+    margin: 24px 0;
+    padding: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    text-align: center;
+}
+
+.svg-embed svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Tags */
+.tags { margin-bottom: 24px; }
+.tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin-right: 6px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .sidebar { display: none; }
+    .content { margin-left: 0; padding: 24px; width: 100%; }
+}
+
+/* Lists */
+ul, ol { margin: 12px 0 12px 24px; }
+li { margin-bottom: 6px; }
+
+/* Math (basic) */
+.math { font-family: 'Times New Roman', serif; font-style: italic; }
+</style>
+</head>
+<body>
+    <nav class="sidebar">
+        <h2>Notes</h2>
+        <a href="die-reise-eines-satzes-durch-ein-llm.html" class="main-link">Die Reise eines Satzes durch ein LLM</a><hr><a href="attention.html">Attention</a><a href="autoregressive-generierung.html">Autoregressive Generierung</a><a href="byte-pair-encoding.html">Byte Pair Encoding</a><a href="embedding.html" class="active">Embedding</a><a href="gelu.html">GELU</a><a href="layernorm.html">LayerNorm</a><a href="residual-connection.html">Residual Connection</a><a href="skalarprodukt.html">Skalarprodukt</a><a href="softmax.html">Softmax</a><a href="temperatur.html">Temperatur</a><a href="tensor.html">Tensor</a><a href="nn-linear.html">nn.Linear</a>
+    </nav>
+    <main class="content">
+        <div class="tags"><span class="tag">#ai</span><span class="tag">#llm</span><span class="tag">#grundlagen</span></div>
+        <h1 id="embedding">Embedding</h1>
+<p>Ein Embedding ist ein Vektor, also eine Reihe von Zahlen, der ein Token im hochdimensionalen Raum positioniert. Tokens die in ähnlichen Kontexten auftauchen landen nah beieinander.</p>
+<h2 id="die-idee">Die Idee</h2>
+<p>Du kannst Wörter nicht direkt verrechnen. Aber Zahlen schon. Also gibst du jedem Token eine Position in einem Raum mit tausenden Dimensionen. In diesem Raum bedeutet Nähe so etwas wie Ähnlichkeit.</p>
+<p>„Python" sitzt nah bei „JavaScript". Weit weg von „Bratwurst". Nicht weil das jemand programmiert hat, sondern weil das Modell beim Training gelernt hat dass „Python" und „JavaScript" in ähnlichen Sätzen auftauchen.</p>
+<h2 id="technisch">Technisch</h2>
+<p>Eine Lookup-Tabelle. So viele Zeilen wie Token im Vokabular (100.000–200.000), jede Zeile ein Vektor mit typischerweise 4.096 Werten. Du gibst eine Token-ID rein, du kriegst den passenden Vektor raus.</p>
+<pre><code class="language-python">import torch.nn as nn
+
+emb = nn.Embedding(num_embeddings=150_000, embedding_dim=4096)
+vector = emb(torch.tensor([15490]))  # Vektor für &quot;Python&quot;
+</code></pre>
+<h2 id="der-beruhmte-befund">Der berühmte Befund</h2>
+<p>Mikolov 2013, Word2Vec:</p>
+<div class="math" style="text-align:center;margin:12px 0;font-size:1.1em;">\vec{\text{König}} - \vec{\text{Mann}} + \vec{\text{Frau}} \approx \vec{\text{Königin}}</div>
+
+<p>Vektorarithmetik funktioniert mit Bedeutungen. Das ergibt sich rein aus Statistik, niemand hat Bedeutung einprogrammiert.</p>
+<h2 id="haken">Haken</h2>
+<p>Das Embedding ist kontextfrei. „Bank" hat immer den gleichen Startvektor, egal ob Parkbank oder Sparkasse. Erst <a href="attention.html">Attention</a> löst das auf.</p>
+<h2 id="siehe-auch">Siehe auch</h2>
+<ul>
+<li><a href="byte-pair-encoding.html">Byte Pair Encoding</a> – wie die Token überhaupt entstehen</li>
+<li><a href="tensor.html">Tensor</a> – das Zahlengitter in dem die Vektoren leben</li>
+</ul>
+    </main>
+</body>
+</html>

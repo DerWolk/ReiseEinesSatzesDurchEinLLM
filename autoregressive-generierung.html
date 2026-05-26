@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autoregressive Generierung</title>
+    <style>
+:root {
+    --bg: #0f172a;
+    --bg-card: #1e293b;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --accent: #818cf8;
+    --accent-hover: #a5b4fc;
+    --border: #334155;
+    --code-bg: #1e293b;
+    --tag-bg: #312e81;
+    --tag-text: #c4b5fd;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 280px;
+    min-width: 280px;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.sidebar h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    padding-left: 8px;
+}
+
+.sidebar a {
+    display: block;
+    padding: 8px 12px;
+    color: var(--text);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 2px;
+    transition: background 0.15s;
+}
+
+.sidebar a:hover { background: rgba(129, 140, 248, 0.1); }
+.sidebar a.active { background: rgba(129, 140, 248, 0.15); color: var(--accent); font-weight: 600; }
+.sidebar .main-link { font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+.sidebar hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+/* Main content */
+.content {
+    margin-left: 280px;
+    max-width: 800px;
+    padding: 48px 48px 96px;
+    width: calc(100% - 280px);
+}
+
+h1 {
+    font-size: 2em;
+    margin-bottom: 16px;
+    color: #f1f5f9;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+}
+
+h2 {
+    font-size: 1.4em;
+    margin-top: 40px;
+    margin-bottom: 12px;
+    color: #f1f5f9;
+}
+
+h3 { font-size: 1.15em; margin-top: 28px; margin-bottom: 8px; }
+
+p { margin-bottom: 16px; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+code {
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.88em;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    border: 1px solid var(--border);
+}
+
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin: 16px 0;
+}
+
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.85em;
+    line-height: 1.6;
+}
+
+blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: 16px;
+    color: var(--text-muted);
+    margin: 16px 0;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 16px 0;
+}
+
+th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 0.9em;
+}
+
+th { background: var(--bg-card); font-weight: 600; }
+
+/* SVG embeds */
+.svg-embed {
+    margin: 24px 0;
+    padding: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    text-align: center;
+}
+
+.svg-embed svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Tags */
+.tags { margin-bottom: 24px; }
+.tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin-right: 6px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .sidebar { display: none; }
+    .content { margin-left: 0; padding: 24px; width: 100%; }
+}
+
+/* Lists */
+ul, ol { margin: 12px 0 12px 24px; }
+li { margin-bottom: 6px; }
+
+/* Math (basic) */
+.math { font-family: 'Times New Roman', serif; font-style: italic; }
+</style>
+</head>
+<body>
+    <nav class="sidebar">
+        <h2>Notes</h2>
+        <a href="die-reise-eines-satzes-durch-ein-llm.html" class="main-link">Die Reise eines Satzes durch ein LLM</a><hr><a href="attention.html">Attention</a><a href="autoregressive-generierung.html" class="active">Autoregressive Generierung</a><a href="byte-pair-encoding.html">Byte Pair Encoding</a><a href="embedding.html">Embedding</a><a href="gelu.html">GELU</a><a href="layernorm.html">LayerNorm</a><a href="residual-connection.html">Residual Connection</a><a href="skalarprodukt.html">Skalarprodukt</a><a href="softmax.html">Softmax</a><a href="temperatur.html">Temperatur</a><a href="tensor.html">Tensor</a><a href="nn-linear.html">nn.Linear</a>
+    </nav>
+    <main class="content">
+        <div class="tags"><span class="tag">#ai</span><span class="tag">#llm</span><span class="tag">#grundlagen</span></div>
+        <h1 id="autoregressive-generierung">Autoregressive Generierung</h1>
+<p>So erzeugen LLMs Text: ein Token nach dem anderen, wobei jedes neue Token auf allen bisherigen basiert. Dann wird es angehängt und der ganze Apparat läuft nochmal.</p>
+<h2 id="der-loop">Der Loop</h2>
+<pre><code class="language-python">while not done:
+    logits     = model(input_ids)[:, -1, :]
+    probs      = F.softmax(logits / temperature, dim=-1)
+    next_token = torch.multinomial(probs, num_samples=1)
+    input_ids  = torch.cat([input_ids, next_token], dim=-1)
+    done       = (next_token.item() == eos_id)
+</code></pre>
+<ol>
+<li>Alle bisherigen Token durchs Modell jagen</li>
+<li>Am Ende fällt eine Verteilung über mögliche nächste Token raus</li>
+<li>Eins wird gewürfelt (Sampling) oder das wahrscheinlichste genommen (Greedy)</li>
+<li>Anhängen, von vorne</li>
+</ol>
+<h2 id="warum-autoregressiv">Warum autoREgressiv?</h2>
+<p>„Regressiv" heißt rückwärts bezogen. Jede Vorhersage bezieht sich auf das was vorher kam. Wie bei einer Zeitreihe wo der nächste Wert von den bisherigen abhängt.</p>
+<h2 id="warum-nicht-alles-auf-einmal">Warum nicht alles auf einmal?</h2>
+<p>Weil jedes Token von allen vorherigen abhängt. Du kannst Token 5 nicht vorhersagen ohne Token 1–4 zu kennen. Und Token 6 hängt von 1–5 ab, inklusive dem gerade erst generierten Token 5.</p>
+<p>Bei der Eingabe geht das parallel (die sind ja alle schon da). Aber bei der Ausgabe zwangsläufig sequentiell.</p>
+<h2 id="deshalb-ist-es-langsam">Deshalb ist es langsam</h2>
+<p>Ein Absatz mit 200 Token = 200 komplette Durchläufe durch alle 80 Transformer-Blöcke. Jeder Durchlauf produziert nur EIN Token. Deshalb merkst du bei ChatGPT dass die Antwort Stück für Stück kommt.</p>
+<h2 id="deshalb-wird-in-token-abgerechnet">Deshalb wird in Token abgerechnet</h2>
+<p>Ein Output-Token = ein Durchlauf durchs ganze Modell. Das ist teuer. Token sind nicht nur die Einheit von Text. Token sind die Einheit von Rechenaufwand.</p>
+<h2 id="kv-cache">KV-Cache</h2>
+<p>Optimierung: Statt bei jedem neuen Token alle bisherigen Token nochmal komplett durch Attention zu schicken, speichert man die K- und V-Vektoren der vorherigen Token. Spart massiv Rechenzeit, kostet GPU-Speicher. Tradeoff.</p>
+<h2 id="siehe-auch">Siehe auch</h2>
+<ul>
+<li><a href="attention.html">Attention</a> – was bei jedem Durchlauf passiert</li>
+<li><a href="softmax.html">Softmax</a> – macht aus Scores die Verteilung aus der gewürfelt wird</li>
+</ul>
+    </main>
+</body>
+</html>

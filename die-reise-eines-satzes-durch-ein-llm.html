@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Die Reise eines Satzes durch ein LLM</title>
+    <style>
+:root {
+    --bg: #0f172a;
+    --bg-card: #1e293b;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --accent: #818cf8;
+    --accent-hover: #a5b4fc;
+    --border: #334155;
+    --code-bg: #1e293b;
+    --tag-bg: #312e81;
+    --tag-text: #c4b5fd;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 280px;
+    min-width: 280px;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.sidebar h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    padding-left: 8px;
+}
+
+.sidebar a {
+    display: block;
+    padding: 8px 12px;
+    color: var(--text);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 2px;
+    transition: background 0.15s;
+}
+
+.sidebar a:hover { background: rgba(129, 140, 248, 0.1); }
+.sidebar a.active { background: rgba(129, 140, 248, 0.15); color: var(--accent); font-weight: 600; }
+.sidebar .main-link { font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+.sidebar hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+/* Main content */
+.content {
+    margin-left: 280px;
+    max-width: 800px;
+    padding: 48px 48px 96px;
+    width: calc(100% - 280px);
+}
+
+h1 {
+    font-size: 2em;
+    margin-bottom: 16px;
+    color: #f1f5f9;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+}
+
+h2 {
+    font-size: 1.4em;
+    margin-top: 40px;
+    margin-bottom: 12px;
+    color: #f1f5f9;
+}
+
+h3 { font-size: 1.15em; margin-top: 28px; margin-bottom: 8px; }
+
+p { margin-bottom: 16px; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+code {
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.88em;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    border: 1px solid var(--border);
+}
+
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin: 16px 0;
+}
+
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.85em;
+    line-height: 1.6;
+}
+
+blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: 16px;
+    color: var(--text-muted);
+    margin: 16px 0;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 16px 0;
+}
+
+th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 0.9em;
+}
+
+th { background: var(--bg-card); font-weight: 600; }
+
+/* SVG embeds */
+.svg-embed {
+    margin: 24px 0;
+    padding: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    text-align: center;
+}
+
+.svg-embed svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Tags */
+.tags { margin-bottom: 24px; }
+.tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin-right: 6px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .sidebar { display: none; }
+    .content { margin-left: 0; padding: 24px; width: 100%; }
+}
+
+/* Lists */
+ul, ol { margin: 12px 0 12px 24px; }
+li { margin-bottom: 6px; }
+
+/* Math (basic) */
+.math { font-family: 'Times New Roman', serif; font-style: italic; }
+</style>
+</head>
+<body>
+    <nav class="sidebar">
+        <h2>Notes</h2>
+        <a href="die-reise-eines-satzes-durch-ein-llm.html" class="main-link active">Die Reise eines Satzes durch ein LLM</a><hr><a href="attention.html">Attention</a><a href="autoregressive-generierung.html">Autoregressive Generierung</a><a href="byte-pair-encoding.html">Byte Pair Encoding</a><a href="embedding.html">Embedding</a><a href="gelu.html">GELU</a><a href="layernorm.html">LayerNorm</a><a href="residual-connection.html">Residual Connection</a><a href="skalarprodukt.html">Skalarprodukt</a><a href="softmax.html">Softmax</a><a href="temperatur.html">Temperatur</a><a href="tensor.html">Tensor</a><a href="nn-linear.html">nn.Linear</a>
+    </nav>
+    <main class="content">
+        <div class="tags"><span class="tag">#ai</span><span class="tag">#llm</span><span class="tag">#python</span><span class="tag">#erklärung</span></div>
+        <h1 id="wie-ein-llm-wirklich-funktioniert">Wie ein LLM wirklich funktioniert</h1>
+<p>Du fängst ja grad mit PyTorch an und baust dein erstes Zeug zusammen. Dann solltest du auch einmal sehen was da eigentlich passiert wenn du einem Sprachmodell einen Satz gibst. Nicht der Marketing-Bullshit, nicht "die KI versteht dich", sondern was wirklich abläuft. Schritt für Schritt.</p>
+<p>Wir nehmen einen Satz und jagen ihn einmal komplett durch so ein Modell. Sagen wir du schreibst folgenden Satz:</p>
+<p>„Python ist eine schöne Sprache."</p>
+<p>Fünf Stationen. An den passenden Stellen bau ich dir PyTorch-Snippets ein damit du siehst wo welches Teil in echtem Code lebt.</p>
+<div class="svg-embed"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 200" font-family="Inter, -apple-system, sans-serif">
+  <!-- Background -->
+  <rect width="900" height="200" fill="none"/>
+
+  <!-- Station 1: Tokenizer -->
+  <rect x="20" y="60" width="140" height="80" rx="12" fill="#6366f1" opacity="0.9"/>
+  <text x="90" y="95" text-anchor="middle" fill="white" font-size="11" font-weight="600">Station 1</text>
+  <text x="90" y="115" text-anchor="middle" fill="white" font-size="13" font-weight="700">Tokenizer</text>
+  <text x="90" y="132" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">Text → Zahlen</text>
+
+  <!-- Arrow 1→2 -->
+  <path d="M160 100 L195 100" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Station 2: Embedding -->
+  <rect x="195" y="60" width="140" height="80" rx="12" fill="#8b5cf6" opacity="0.9"/>
+  <text x="265" y="95" text-anchor="middle" fill="white" font-size="11" font-weight="600">Station 2</text>
+  <text x="265" y="115" text-anchor="middle" fill="white" font-size="13" font-weight="700">Embedding</text>
+  <text x="265" y="132" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">Zahlen → Vektoren</text>
+
+  <!-- Arrow 2→3 -->
+  <path d="M335 100 L370 100" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Station 3: Attention -->
+  <rect x="370" y="60" width="140" height="80" rx="12" fill="#06b6d4" opacity="0.9"/>
+  <text x="440" y="95" text-anchor="middle" fill="white" font-size="11" font-weight="600">Station 3</text>
+  <text x="440" y="115" text-anchor="middle" fill="white" font-size="13" font-weight="700">Attention</text>
+  <text x="440" y="132" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">Kontext mischen</text>
+
+  <!-- Arrow 3→4 -->
+  <path d="M510 100 L545 100" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Station 4: FFN -->
+  <rect x="545" y="60" width="140" height="80" rx="12" fill="#10b981" opacity="0.9"/>
+  <text x="615" y="95" text-anchor="middle" fill="white" font-size="11" font-weight="600">Station 4</text>
+  <text x="615" y="115" text-anchor="middle" fill="white" font-size="13" font-weight="700">FFN</text>
+  <text x="615" y="132" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">Verarbeiten</text>
+
+  <!-- Arrow 4→5 -->
+  <path d="M685 100 L720 100" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Station 5: Output -->
+  <rect x="720" y="60" width="140" height="80" rx="12" fill="#f59e0b" opacity="0.9"/>
+  <text x="790" y="95" text-anchor="middle" fill="white" font-size="11" font-weight="600">Station 5</text>
+  <text x="790" y="115" text-anchor="middle" fill="white" font-size="13" font-weight="700">Output</text>
+  <text x="790" y="132" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">Verteilung → Token</text>
+
+  <!-- Loop arrow back -->
+  <path d="M790 140 C790 175, 440 185, 90 175 C70 173, 60 160, 60 140" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3" fill="none" marker-end="url(#arrow-gold)"/>
+  <text x="440" y="178" text-anchor="middle" fill="#f59e0b" font-size="9" font-style="italic">nächstes Token anhängen, wiederholen</text>
+
+  <!-- Input label -->
+  <text x="90" y="45" text-anchor="middle" fill="#64748b" font-size="10">„Python ist eine..."</text>
+
+  <!-- Output label -->
+  <text x="790" y="45" text-anchor="middle" fill="#64748b" font-size="10">→ „ Sie"</text>
+
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrow-gold" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#f59e0b"/>
+    </marker>
+  </defs>
+</svg>
+</div>
+
+<h1 id="station-1-der-tokenizer">Station 1: Der Tokenizer</h1>
+<p>Das Modell kennt keine Sprache. Keine Wörter, keine Buchstaben, gar nichts. Es kennt nur Zahlen. Riesige Tabellen voller Zahlen.</p>
+<p>Damit dein Satz da überhaupt rein kann muss er erstmal in Zahlen übersetzt werden. Das macht der Tokenizer, ein kleines Programm das vor dem eigentlichen Modell läuft. Sein Job istText in Stücke hacken und jedem Stück eine Nummer geben. </p>
+<pre><code>Python   → 15490
+ist      →  6127
+eine     →  5180
+sch      →  1364
+öne      → 27094
+Spr      → 30689
+ache     →  4023
+.        →    13
+</code></pre>
+<div class="svg-embed"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 280" font-family="Inter, -apple-system, sans-serif">
+  <rect width="750" height="280" fill="none"/>
+
+  <!-- Input sentence -->
+  <text x="375" y="30" text-anchor="middle" fill="#64748b" font-size="11" font-weight="600">EINGABE</text>
+  <rect x="120" y="40" width="510" height="36" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="375" y="64" text-anchor="middle" fill="#1e293b" font-size="15" font-weight="500">Python ist eine schöne Sprache.</text>
+
+  <!-- Arrow down -->
+  <path d="M375 76 L375 105" stroke="#6366f1" stroke-width="2" marker-end="url(#arr-indigo)"/>
+  <text x="395" y="95" fill="#6366f1" font-size="9" font-style="italic">tokenize</text>
+
+  <!-- Token boxes -->
+  <g transform="translate(30, 110)">
+    <!-- Python -->
+    <rect x="0" y="0" width="80" height="50" rx="8" fill="#6366f1"/>
+    <text x="40" y="22" text-anchor="middle" fill="white" font-size="12" font-weight="600">Python</text>
+    <text x="40" y="40" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">15490</text>
+
+    <!-- ist -->
+    <rect x="90" y="0" width="60" height="50" rx="8" fill="#8b5cf6"/>
+    <text x="120" y="22" text-anchor="middle" fill="white" font-size="12" font-weight="600">ist</text>
+    <text x="120" y="40" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">6127</text>
+
+    <!-- eine -->
+    <rect x="160" y="0" width="65" height="50" rx="8" fill="#a78bfa"/>
+    <text x="192" y="22" text-anchor="middle" fill="white" font-size="12" font-weight="600">eine</text>
+    <text x="192" y="40" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">5180</text>
+
+    <!-- sch -->
+    <rect x="235" y="0" width="55" height="50" rx="8" fill="#06b6d4"/>
+    <text x="262" y="22" text-anchor="middle" fill="white" font-size="12" font-weight="600">sch</text>
+    <text x="262" y="40" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">1364</text>
+
+    <!-- öne -->
+    <rect x="300" y="0" width="55" height="50" rx="8" fill="#06b6d4"/>
+    <text x="327" y="22" text-anchor="middle" fill="white" font-size="12" font-weight="600">öne</text>
+    <text x="327" y="40" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">27094</text>
+
+    <!-- Spr -->
+    <rect x="365" y="0" width="55" height="50" rx="8" fill="#10b981"/>
+    <text x="392" y="22" text-anchor="middle" fill="white" font-size="12" font-weight="600">Spr</text>
+    <text x="392" y="40" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">30689</text>
+
+    <!-- ache -->
+    <rect x="430" y="0" width="60" height="50" rx="8" fill="#10b981"/>
+    <text x="460" y="22" text-anchor="middle" fill="white" font-size="12" font-weight="600">ache</text>
+    <text x="460" y="40" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">4023</text>
+
+    <!-- . -->
+    <rect x="500" y="0" width="40" height="50" rx="8" fill="#64748b"/>
+    <text x="520" y="22" text-anchor="middle" fill="white" font-size="14" font-weight="700">.</text>
+    <text x="520" y="40" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">13</text>
+  </g>
+
+  <!-- Bracket for "schöne" -->
+  <path d="M268 170 C268 180, 268 180, 295 185 C268 190, 268 190, 268 200" stroke="#06b6d4" stroke-width="1.5" fill="none"/>
+  <path d="M352 170 C352 180, 352 180, 325 185 C352 190, 352 190, 352 200" stroke="#06b6d4" stroke-width="1.5" fill="none"/>
+  <text x="310" y="215" text-anchor="middle" fill="#06b6d4" font-size="10">= „schöne"</text>
+
+  <!-- Bracket for "Sprache" -->
+  <path d="M398 170 C398 180, 398 180, 425 185 C398 190, 398 190, 398 200" stroke="#10b981" stroke-width="1.5" fill="none"/>
+  <path d="M488 170 C488 180, 488 180, 461 185 C488 190, 488 190, 488 200" stroke="#10b981" stroke-width="1.5" fill="none"/>
+  <text x="443" y="215" text-anchor="middle" fill="#10b981" font-size="10">= „Sprache"</text>
+
+  <!-- Legend -->
+  <rect x="130" y="235" width="490" height="30" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="375" y="255" text-anchor="middle" fill="#475569" font-size="10">Häufige Wörter = 1 Token │ Seltene/deutsche Wörter werden aufgeteilt │ 8 Token insgesamt</text>
+
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arr-indigo" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#6366f1"/>
+    </marker>
+  </defs>
+</svg>
+</div>
+
+<p>Acht Token. Acht Zahlen. Das wars. Mehr kommt beim Modell nicht an. „Python" ist ein Stück weil das Wort im Trainingstext ständig vorkam. „schöne" wurde in zwei Teile gehackt, „Sprache" auch.</p>
+<p>Kannst du direkt ausprobieren:</p>
+<pre><code class="language-python">from transformers import AutoTokenizer
+tok = AutoTokenizer.from_pretrained(&quot;gpt2&quot;)
+print(tok.encode(&quot;Python ist eine schöne Sprache.&quot;))
+</code></pre>
+<p>Die genauen IDs hängen vom Tokenizer ab aber die Struktur ist immer die gleiche.</p>
+<h2 id="warum-nicht-einfach-ganze-worter">Warum nicht einfach ganze Wörter?</h2>
+<p>Klingt erstmal logisch? Dachte ich zuerst auch. Jedes Wort ein Token, fertig. Das Problem ist, die Anzahl möglicher Wörter ist quasi unendlich. Allein im Deutschen, Eigennamen, Fachbegriffe,  irre zusammengesetzte Substantive. Donaudampfschifffahrtsgesellschaftskapitän. Da bräuchtest du Millionen Einträge.</p>
+<p>Ein anderes Extrem ist jeden Buchstaben einzeln als Token zu nehmen. Geht, aber dann braucht das Modell ewig um überhaupt zu checken was ein Wort bedeutet. „Python" wäre dann sechs Token statt einem.</p>
+<p>Der Tokenizer macht den Mittelweg. Häufige Buchstabenfolgen werden zusammengeklebt, seltene bleiben klein. Du weißt ja noch was eine HashMap ist, das funktioniert nach einem ähnlichem Prinzip.</p>
+<h2 id="wie-lernt-der-das">Wie lernt der das?</h2>
+<p>Bevor das Modell trainiert wird, wird erstmal der Tokenizer trainiert. Auf einem riesigen Haufen Text.</p>
+<p>Das Verfahren heißt <a href="byte-pair-encoding.html">Byte Pair Encoding</a>, BPE. Ist aber überraschend simpel. Du fängst mit einzelnen Buchstaben an. Dann guckst du welche zwei Buchstaben am häufigsten nebeneinander stehen. Die verschmilzt du zu einem Stück. Das wiederholst du tausende Male.</p>
+<p>So entstehen Stücke wie „ist", „der", „ee", „ung". Was im Text oft vorkommt wird ein Stück. Was selten ist bleibt zerteilt.</p>
+<p>Und jetzt der Punkt. Wenn der Tokenizer hauptsächlich mit englischen Texten trainiert wurde, lernt er halt englische Häufigkeiten. „the" wird ein Token. „Python" wird ein Token weil Programmiersprachen-Kram überall auf Englisch ist. Aber deutsche Wörter wie „schöne"? Zerteilt. „Sprache"? Zerteilt.</p>
+<p>Das ist keine echte Intelligenz. Das ist Zählen. </p>
+<h2 id="warum-das-nicht-egal-ist">Warum das nicht egal ist</h2>
+<p>Unser Satz braucht auf Deutsch acht Token. Auf Englisch wäre „Python is a beautiful language." vielleicht sechs. Russisch noch mehr.</p>
+<p>Wer auf Englisch promptet kriegt mehr Text ins Kontextfenster rein. Wer über die API arbeitet zahlt pro Token, also ist derselbe Inhalt auf Russisch einfach teurer. Neuere Tokenizer wie der von GPT-4o machen es besser, aber Englisch bleibt am günstigsten.</p>
+<p>Das alles weil irgendwann mal jemand Buchstaben gezählt hat in einer Textsammlung wo Englisch dominant war. So simpel ist das. 
+Aber auch hier muss man sagen gibt es schon modernere Ansätze. Nennt sich Multilingual Tokenizer. Die Dinger werden effizient auf die populärsten Sprachen trainiert. Mixture-of-Experts-artige Tokenisierung gibt es btw. auch, oder sogar reine Byte-Level Tokenizer, denen ist Sprache dann komplett egal.</p>
+<h2 id="wo-wir-stehen">Wo wir stehen</h2>
+<p>Aus „Python ist eine schöne Sprache." ist geworden:</p>
+<pre><code>15490, 6127, 5180, 1364, 27094, 30689, 4023, 13
+</code></pre>
+<p>Acht Zahlen. Keine Bedeutung, kein Zusammenhang, nicht mal die Info dass „ sch" und „öne" zusammen mal ein Wort waren.</p>
+<h1 id="station-2-embedding-und-position">Station 2: Embedding und Position</h1>
+<p>Jetzt kriegen diese Zahlen einen Ort. Ort haben ist die Vorstufe von Bedeutung haben.</p>
+<h2 id="was-passiert">Was passiert</h2>
+<p>Stell dir eine riesige Tabelle vor. So viele Zeilen wie der Tokenizer Einträge hat, also so 100.000 bis 200.000. Und jede Zeile hat 4.096 Spalten.</p>
+<p>Jede Zeile gehört zu einem Token. Unser „Python" mit der Nummer 15490 hat eine eigene Zeile. „ ist" mit 6127 hat eine eigene. In jeder Zeile stehen 4.096 Zahlen.</p>
+<p>So eine Reihe Zahlen heißt Vektor. Du hattest Vektoren in Mathe, da warens meistens zwei oder drei Zahlen, also ein Punkt auf einer Fläche oder im Raum. Hier ist es das gleiche Prinzip, nur mit 4.096 Zahlen statt drei. Kann sich kein Mensch mehr vorstellen, aber rechnen geht damit genauso.</p>
+<p>Im Kontext von Sprachmodellen sagt man zu so einem Vektor auch <a href="embedding.html">Embedding</a>.</p>
+<p>In PyTorch ist das eine <code>nn.Embedding</code>. Im Grunde eine Lookup-Tabelle, nichts weiter.</p>
+<pre><code class="language-python">import torch
+import torch.nn as nn
+
+emb = nn.Embedding(num_embeddings=150_000, embedding_dim=4096)
+ids = torch.tensor([15490, 6127, 5180, 1364, 27094, 30689, 4023, 13])
+vectors = emb(ids)
+print(vectors.shape)   # torch.Size([8, 4096])
+</code></pre>
+<p>Aus acht Zahlen wird ein <a href="tensor.html">Tensor</a> mit Shape [8, 4096]. Tensor ist in PyTorch einfach das Wort für so ein mehrdimensionales Zahlengitter. Hier: acht Vektoren, jeder 4.096 Werte lang.</p>
+<h2 id="warum-ist-das-ein-ort">Warum ist das ein Ort?</h2>
+<div class="svg-embed"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 420" font-family="Inter, -apple-system, sans-serif">
+  <rect width="650" height="420" fill="none"/>
+
+  <!-- Title -->
+  <text x="325" y="25" text-anchor="middle" fill="#64748b" font-size="12" font-weight="600">EMBEDDING-RAUM (2D-Projektion von 4.096 Dimensionen)</text>
+
+  <!-- Axes -->
+  <line x1="60" y1="380" x2="620" y2="380" stroke="#cbd5e1" stroke-width="1"/>
+  <line x1="60" y1="380" x2="60" y2="40" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Grid (subtle) -->
+  <line x1="60" y1="300" x2="620" y2="300" stroke="#f1f5f9" stroke-width="0.5"/>
+  <line x1="60" y1="220" x2="620" y2="220" stroke="#f1f5f9" stroke-width="0.5"/>
+  <line x1="60" y1="140" x2="620" y2="140" stroke="#f1f5f9" stroke-width="0.5"/>
+  <line x1="200" y1="40" x2="200" y2="380" stroke="#f1f5f9" stroke-width="0.5"/>
+  <line x1="340" y1="40" x2="340" y2="380" stroke="#f1f5f9" stroke-width="0.5"/>
+  <line x1="480" y1="40" x2="480" y2="380" stroke="#f1f5f9" stroke-width="0.5"/>
+
+  <!-- Cluster: Programming Languages -->
+  <ellipse cx="180" cy="120" rx="95" ry="65" fill="#6366f1" opacity="0.08" stroke="#6366f1" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="180" y="60" text-anchor="middle" fill="#6366f1" font-size="9" font-weight="600" opacity="0.8">Programmierung</text>
+
+  <circle cx="150" cy="105" r="5" fill="#6366f1"/>
+  <text x="160" y="100" fill="#4338ca" font-size="11" font-weight="600">Python</text>
+
+  <circle cx="200" cy="130" r="4" fill="#6366f1" opacity="0.8"/>
+  <text x="210" y="135" fill="#4338ca" font-size="10">JavaScript</text>
+
+  <circle cx="140" cy="145" r="4" fill="#6366f1" opacity="0.8"/>
+  <text x="150" y="150" fill="#4338ca" font-size="10">Code</text>
+
+  <circle cx="220" cy="100" r="4" fill="#6366f1" opacity="0.7"/>
+  <text x="230" y="105" fill="#4338ca" font-size="10">Rust</text>
+
+  <circle cx="170" cy="160" r="3.5" fill="#6366f1" opacity="0.7"/>
+  <text x="180" y="165" fill="#4338ca" font-size="9">Variable</text>
+
+  <!-- Cluster: Language/Sprache -->
+  <ellipse cx="430" cy="140" rx="90" ry="60" fill="#10b981" opacity="0.08" stroke="#10b981" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="430" y="75" text-anchor="middle" fill="#10b981" font-size="9" font-weight="600" opacity="0.8">Sprache &amp; Kommunikation</text>
+
+  <circle cx="410" cy="125" r="5" fill="#10b981"/>
+  <text x="420" y="120" fill="#047857" font-size="11" font-weight="600">Sprache</text>
+
+  <circle cx="450" cy="150" r="4" fill="#10b981" opacity="0.8"/>
+  <text x="460" y="155" fill="#047857" font-size="10">Wort</text>
+
+  <circle cx="390" cy="155" r="4" fill="#10b981" opacity="0.8"/>
+  <text x="400" y="160" fill="#047857" font-size="10">Satz</text>
+
+  <circle cx="460" cy="120" r="3.5" fill="#10b981" opacity="0.7"/>
+  <text x="470" y="125" fill="#047857" font-size="9">Deutsch</text>
+
+  <!-- Cluster: Beauty/Adjectives -->
+  <ellipse cx="320" cy="280" rx="80" ry="55" fill="#f59e0b" opacity="0.08" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="320" y="340" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="600" opacity="0.8">Eigenschaften</text>
+
+  <circle cx="300" cy="270" r="5" fill="#f59e0b"/>
+  <text x="310" y="265" fill="#b45309" font-size="11" font-weight="600">schöne</text>
+
+  <circle cx="340" cy="290" r="4" fill="#f59e0b" opacity="0.8"/>
+  <text x="350" y="295" fill="#b45309" font-size="10">elegant</text>
+
+  <circle cx="290" cy="295" r="3.5" fill="#f59e0b" opacity="0.7"/>
+  <text x="300" y="300" fill="#b45309" font-size="9">hübsch</text>
+
+  <!-- Far away: Food -->
+  <circle cx="550" cy="340" r="4" fill="#ef4444" opacity="0.6"/>
+  <text x="560" y="345" fill="#b91c1c" font-size="10">Bratwurst</text>
+
+  <circle cx="570" cy="360" r="3.5" fill="#ef4444" opacity="0.5"/>
+  <text x="580" y="365" fill="#b91c1c" font-size="9">Küche</text>
+
+  <!-- Vector arithmetic illustration -->
+  <rect x="350" y="365" width="280" height="45" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="365" y="383" fill="#475569" font-size="9">Mikolov 2013:</text>
+  <text x="365" y="400" fill="#6366f1" font-size="10" font-weight="500">König − Mann + Frau ≈ Königin</text>
+
+  <!-- Distance annotation -->
+  <line x1="155" y1="110" x2="400" y2="128" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="280" y="108" text-anchor="middle" fill="#94a3b8" font-size="8" font-style="italic">weiter weg = weniger ähnlich</text>
+</svg>
+</div>
+
+<p>Denk an Google Maps. Jeder Punkt hat Koordinaten, Länge und Breite. Zwei Cafés nebeneinander haben fast die gleichen Koordinaten. Eins in Worpswede und eins in Tokio haben komplett andere.</p>
+<p>Jetzt stell dir vor die Karte hat nicht zwei sondern 4.096 Dimensionen. Dimension ist einfach eine Koordinatenachse. Zwei Dimensionen ist eine Fläche. Drei ist der Raum um dich rum. Vier kannst du dir schon nicht mehr vorstellen. 4.096 schon gar nicht. Aber dem Computer ist das egal, für den ist jede Dimension einfach eine weitere Zahl.</p>
+<p>Und in diesem Raum sitzt jedes Token an einer bestimmten Stelle. „Python" sitzt in der Nähe von „JavaScript", „Code", „Programmierung". Weit weg von „Bratwurst" oder „Mondfinsternis".</p>
+<p>Diese Positionen hat niemand hinprogrammiert. Das Modell hat sie beim Training gelernt. Milliarden Sätze gesehen, gemerkt welche Wörter in ähnlichen Kontexten auftauchen, und Wörter die ähnliche Nachbarn haben nah beieinander platziert.</p>
+<p>Das ist übrigens der berühmte Befund von Tomáš Mikolov 2013 mit Word2Vec. Nimm den Vektor für König, zieh den Vektor für Mann ab, addier den Vektor für Frau, und du landest in der Nähe von Königin. Vektoren addieren und subtrahieren geht nämlich genau wie mit normalen Zahlen, einfach Stelle für Stelle. Also (3, 5) minus (1, 2) ist (2, 3), checkst du? Nur hier halt mit 4.096 Stellen. Reine Statistik, und am Ende sieht es aus wie Bedeutung. Ziemlich wild eigentlich.</p>
+<h2 id="kleiner-haken">Kleiner Haken</h2>
+<p>Das Embedding ist noch grob. „Bank" hat hier immer die gleiche Position, egal ob Parkbank oder Sparkasse. Beides startet identisch. Dass das Modell den Unterschied später kapiert, passiert erst in der nächsten Station.</p>
+<h2 id="reihenfolge">Reihenfolge</h2>
+<p>Noch ein Problem. Die acht Vektoren sagen nichts darüber wo sie im Satz stehen. Aber Reihenfolge ist wichtig. „Hund beißt Mann" und „Mann beißt Hund" sind nicht dasselbe. Wenn das Modell nur die Wörter sieht aber nicht die Reihenfolge, kann es die beiden Sätze nicht unterscheiden. Bullshit.</p>
+<p>Also wird zu jedem Vektor noch eine Positions-Info dazugepackt. Sie sagt dem Modell ob das Token an Stelle eins steht oder an Stelle acht.</p>
+<p>Wie das genau gemacht wird hat sich über die Jahre geändert. Das originale Transformer-Paper von 2017 hat dafür Sinus-Wellen genommen, also Schwingungsmuster mit verschiedenen Frequenzen, quasi ein Fingerabdruck pro Position. Heute nutzen die meisten Modelle was namens RoPE, Rotary Position Embedding, das die Vektoren je nach Position leicht dreht. Wen juckt das Detail, wichtig ist: nach diesem Schritt weiß jeder Vektor nicht nur welches Token er ist, sondern auch wo er steht.</p>
+<h2 id="wo-wir-stehen_1">Wo wir stehen</h2>
+<p>Acht Vektoren, jeder 4.096 Werte. „Python" ist nicht mehr nur die Zahl 15490 sondern ein Punkt im Raum, nah an anderen Programmiersprachen-Wörtern, und er weiß dass er ganz vorne im Satz steht.</p>
+<p>Aber die acht Vektoren wissen noch nichts voneinander. Jeder guckt nur für sich.</p>
+<h1 id="station-3-attention">Station 3: Attention</h1>
+<p>Jetzt wirds spannend. Hier passiert das was den Transformer zum Transformer macht.</p>
+<h2 id="warum-mussen-die-uberhaupt-miteinander-reden">Warum müssen die überhaupt miteinander reden?</h2>
+<p>Schau dir den Satz an. „Python ist eine schöne Sprache."</p>
+<p>„schöne" beschreibt nicht abstrakt irgendetwas. Es bezieht sich auf die Sprache, und zwar auf Python. „Sprache" meint hier Programmiersprache, nicht Deutsch oder Französisch. Aber woher soll das Modell das wissen wenn jeder Vektor nur für sich alleine dasitzt?</p>
+<p>Die einzelnen Vektoren reichen dafür nicht. Die müssen sich gegenseitig angucken und ihre Infos vermischen können.</p>
+<p>Das ist Attention.</p>
+<h2 id="die-grundidee">Die Grundidee</h2>
+<p>Für jeden der acht Vektoren wird gefragt: "welche der anderen sieben sind gerade wichtig für mich?". Und dann wird der Vektor so umgebaut dass er die Info aus den wichtigen Nachbarn aufnimmt.</p>
+<p>Das wars schon als Idee. Das Komplizierte ist nur wie das Modell entscheidet wer wichtig ist.</p>
+<h2 id="q-k-und-v">Q, K und V</h2>
+<p>Jeder der acht Vektoren wird in drei Versionen von sich selbst zerlegt. Drei verschiedene Transformationen, alle gelernt. Die heißen Q, K und V. Query, Key, Value.</p>
+<p>Q ist die Version mit der ein Vektor andere prüft. K ist die Version an der ein Vektor von anderen geprüft wird. V ist die Version die tatsächlich weitergegeben wird wenns einen Match gibt.</p>
+<p>In PyTorch:</p>
+<pre><code class="language-python">W_q = nn.Linear(4096, 4096)
+W_k = nn.Linear(4096, 4096)
+W_v = nn.Linear(4096, 4096)
+
+Q = W_q(vectors)   # [8, 4096]
+K = W_k(vectors)   # [8, 4096]
+V = W_v(vectors)   # [8, 4096]
+</code></pre>
+<p>Kurz zu <a href="nn-linear.html">nn.Linear</a> weil das überall im Modell auftaucht. Du kennst lineare Funktionen aus der Schule, y = ax + b, also eine Gerade. <code>nn.Linear</code> ist dasselbe nur statt einer Zahl geht ein ganzer Vektor rein und ein ganzer Vektor kommt raus. Statt der einen Zahl a hast du eine Matrix, also ein ganzes Gitter aus Zahlen, mit dem multipliziert wird. Plus ein Vektor b der dazu addiert wird. Selbes Prinzip wie y = ax + b, nur in vielen Dimensionen auf einmal.</p>
+<p>Die Namen Q, K, V klingen nach Frage, Antwort und Inhalt. Ist auch die übliche Erklärung und nicht komplett falsch. Aber eigentlich kommen Q und K aus der gleichen Quelle, nämlich dem Token-Vektor, nur mit verschiedenen gelernten Matrizen multipliziert. Es gibt keinen echten „Fragenden" und keinen „Antwortenden". Es sind zwei verschiedene Sichten auf denselben Vektor und ihr Vergleich ergibt eine Zahl die sagt wie ähnlich sich zwei Tokens sind.</p>
+<div class="svg-embed"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 500" font-family="Inter, -apple-system, sans-serif">
+  <rect width="700" height="500" fill="none"/>
+
+  <!-- Title -->
+  <text x="350" y="25" text-anchor="middle" fill="#64748b" font-size="12" font-weight="600">ATTENTION: Wer guckt wen an?</text>
+
+  <!-- Attention matrix -->
+  <g transform="translate(180, 45)">
+    <!-- Column headers (Keys) -->
+    <text x="170" y="-5" text-anchor="middle" fill="#94a3b8" font-size="9">← Keys (werden geprüft) →</text>
+    <text x="25" y="15" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">Python</text>
+    <text x="70" y="15" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">ist</text>
+    <text x="115" y="15" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">eine</text>
+    <text x="160" y="15" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">sch</text>
+    <text x="205" y="15" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">öne</text>
+    <text x="250" y="15" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">Spr</text>
+    <text x="295" y="15" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">ache</text>
+    <text x="340" y="15" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">.</text>
+
+    <!-- Row headers (Queries) -->
+    <text x="-10" y="45" text-anchor="end" fill="#475569" font-size="9" font-weight="500">Python</text>
+    <text x="-10" y="85" text-anchor="end" fill="#475569" font-size="9" font-weight="500">ist</text>
+    <text x="-10" y="125" text-anchor="end" fill="#475569" font-size="9" font-weight="500">eine</text>
+    <text x="-10" y="165" text-anchor="end" fill="#475569" font-size="9" font-weight="500">sch</text>
+    <text x="-10" y="205" text-anchor="end" fill="#475569" font-size="9" font-weight="500">öne</text>
+    <text x="-10" y="245" text-anchor="end" fill="#475569" font-size="9" font-weight="500">Spr</text>
+    <text x="-10" y="285" text-anchor="end" fill="#475569" font-size="9" font-weight="500">ache</text>
+    <text x="-10" y="325" text-anchor="end" fill="#475569" font-size="9" font-weight="500">.</text>
+
+    <!-- Query label -->
+    <text x="-35" y="185" text-anchor="middle" fill="#94a3b8" font-size="9" writing-mode="tb">← Queries (prüfen) →</text>
+
+    <!-- Row 1: Python attends to... -->
+    <rect x="3" y="27" width="36" height="32" rx="4" fill="#6366f1" opacity="0.8"/>
+    <rect x="48" y="27" width="36" height="32" rx="4" fill="#6366f1" opacity="0.2"/>
+    <rect x="93" y="27" width="36" height="32" rx="4" fill="#6366f1" opacity="0.1"/>
+    <rect x="138" y="27" width="36" height="32" rx="4" fill="#6366f1" opacity="0.05"/>
+    <rect x="183" y="27" width="36" height="32" rx="4" fill="#6366f1" opacity="0.05"/>
+    <rect x="228" y="27" width="36" height="32" rx="4" fill="#6366f1" opacity="0.3"/>
+    <rect x="273" y="27" width="36" height="32" rx="4" fill="#6366f1" opacity="0.3"/>
+    <rect x="318" y="27" width="36" height="32" rx="4" fill="#6366f1" opacity="0.05"/>
+
+    <!-- Row 2: ist -->
+    <rect x="3" y="67" width="36" height="32" rx="4" fill="#6366f1" opacity="0.5"/>
+    <rect x="48" y="67" width="36" height="32" rx="4" fill="#6366f1" opacity="0.3"/>
+    <rect x="93" y="67" width="36" height="32" rx="4" fill="#6366f1" opacity="0.15"/>
+    <rect x="138" y="67" width="36" height="32" rx="4" fill="#6366f1" opacity="0.05"/>
+    <rect x="183" y="67" width="36" height="32" rx="4" fill="#6366f1" opacity="0.05"/>
+    <rect x="228" y="67" width="36" height="32" rx="4" fill="#6366f1" opacity="0.1"/>
+    <rect x="273" y="67" width="36" height="32" rx="4" fill="#6366f1" opacity="0.1"/>
+    <rect x="318" y="67" width="36" height="32" rx="4" fill="#6366f1" opacity="0.05"/>
+
+    <!-- Row 3: eine -->
+    <rect x="3" y="107" width="36" height="32" rx="4" fill="#6366f1" opacity="0.2"/>
+    <rect x="48" y="107" width="36" height="32" rx="4" fill="#6366f1" opacity="0.15"/>
+    <rect x="93" y="107" width="36" height="32" rx="4" fill="#6366f1" opacity="0.3"/>
+    <rect x="138" y="107" width="36" height="32" rx="4" fill="#6366f1" opacity="0.1"/>
+    <rect x="183" y="107" width="36" height="32" rx="4" fill="#6366f1" opacity="0.2"/>
+    <rect x="228" y="107" width="36" height="32" rx="4" fill="#6366f1" opacity="0.4"/>
+    <rect x="273" y="107" width="36" height="32" rx="4" fill="#6366f1" opacity="0.4"/>
+    <rect x="318" y="107" width="36" height="32" rx="4" fill="#6366f1" opacity="0.05"/>
+
+    <!-- Row 4: sch -->
+    <rect x="3" y="147" width="36" height="32" rx="4" fill="#6366f1" opacity="0.15"/>
+    <rect x="48" y="147" width="36" height="32" rx="4" fill="#6366f1" opacity="0.05"/>
+    <rect x="93" y="147" width="36" height="32" rx="4" fill="#6366f1" opacity="0.1"/>
+    <rect x="138" y="147" width="36" height="32" rx="4" fill="#6366f1" opacity="0.5"/>
+    <rect x="183" y="147" width="36" height="32" rx="4" fill="#6366f1" opacity="0.8"/>
+    <rect x="228" y="147" width="36" height="32" rx="4" fill="#6366f1" opacity="0.1"/>
+    <rect x="273" y="147" width="36" height="32" rx="4" fill="#6366f1" opacity="0.1"/>
+    <rect x="318" y="147" width="36" height="32" rx="4" fill="#6366f1" opacity="0.02"/>
+
+    <!-- Row 5: öne (highlighted - this is the example from the text) -->
+    <rect x="0" y="185" width="358" height="38" rx="6" fill="none" stroke="#06b6d4" stroke-width="2"/>
+    <rect x="3" y="187" width="36" height="32" rx="4" fill="#06b6d4" opacity="0.7"/>
+    <rect x="48" y="187" width="36" height="32" rx="4" fill="#06b6d4" opacity="0.15"/>
+    <rect x="93" y="187" width="36" height="32" rx="4" fill="#06b6d4" opacity="0.15"/>
+    <rect x="138" y="187" width="36" height="32" rx="4" fill="#06b6d4" opacity="0.6"/>
+    <rect x="183" y="187" width="36" height="32" rx="4" fill="#06b6d4" opacity="0.3"/>
+    <rect x="228" y="187" width="36" height="32" rx="4" fill="#06b6d4" opacity="0.5"/>
+    <rect x="273" y="187" width="36" height="32" rx="4" fill="#06b6d4" opacity="0.5"/>
+    <rect x="318" y="187" width="36" height="32" rx="4" fill="#06b6d4" opacity="0.02"/>
+    <!-- Weight labels for highlighted row -->
+    <text x="21" y="208" text-anchor="middle" fill="white" font-size="8" font-weight="600">.25</text>
+    <text x="66" y="208" text-anchor="middle" fill="#06b6d4" font-size="8">.04</text>
+    <text x="111" y="208" text-anchor="middle" fill="#06b6d4" font-size="8">.04</text>
+    <text x="156" y="208" text-anchor="middle" fill="white" font-size="8" font-weight="600">.20</text>
+    <text x="201" y="208" text-anchor="middle" fill="#06b6d4" font-size="8">.10</text>
+    <text x="246" y="208" text-anchor="middle" fill="white" font-size="8" font-weight="600">.17</text>
+    <text x="291" y="208" text-anchor="middle" fill="white" font-size="8" font-weight="600">.18</text>
+    <text x="336" y="208" text-anchor="middle" fill="#06b6d4" font-size="8">.02</text>
+
+    <!-- Row 6: Spr -->
+    <rect x="3" y="227" width="36" height="32" rx="4" fill="#6366f1" opacity="0.5"/>
+    <rect x="48" y="227" width="36" height="32" rx="4" fill="#6366f1" opacity="0.1"/>
+    <rect x="93" y="227" width="36" height="32" rx="4" fill="#6366f1" opacity="0.2"/>
+    <rect x="138" y="227" width="36" height="32" rx="4" fill="#6366f1" opacity="0.15"/>
+    <rect x="183" y="227" width="36" height="32" rx="4" fill="#6366f1" opacity="0.3"/>
+    <rect x="228" y="227" width="36" height="32" rx="4" fill="#6366f1" opacity="0.6"/>
+    <rect x="273" y="227" width="36" height="32" rx="4" fill="#6366f1" opacity="0.8"/>
+    <rect x="318" y="227" width="36" height="32" rx="4" fill="#6366f1" opacity="0.05"/>
+
+    <!-- Row 7: ache -->
+    <rect x="3" y="267" width="36" height="32" rx="4" fill="#6366f1" opacity="0.5"/>
+    <rect x="48" y="267" width="36" height="32" rx="4" fill="#6366f1" opacity="0.15"/>
+    <rect x="93" y="267" width="36" height="32" rx="4" fill="#6366f1" opacity="0.15"/>
+    <rect x="138" y="267" width="36" height="32" rx="4" fill="#6366f1" opacity="0.1"/>
+    <rect x="183" y="267" width="36" height="32" rx="4" fill="#6366f1" opacity="0.2"/>
+    <rect x="228" y="267" width="36" height="32" rx="4" fill="#6366f1" opacity="0.7"/>
+    <rect x="273" y="267" width="36" height="32" rx="4" fill="#6366f1" opacity="0.5"/>
+    <rect x="318" y="267" width="36" height="32" rx="4" fill="#6366f1" opacity="0.1"/>
+
+    <!-- Row 8: . -->
+    <rect x="3" y="307" width="36" height="32" rx="4" fill="#6366f1" opacity="0.15"/>
+    <rect x="48" y="307" width="36" height="32" rx="4" fill="#6366f1" opacity="0.1"/>
+    <rect x="93" y="307" width="36" height="32" rx="4" fill="#6366f1" opacity="0.1"/>
+    <rect x="138" y="307" width="36" height="32" rx="4" fill="#6366f1" opacity="0.05"/>
+    <rect x="183" y="307" width="36" height="32" rx="4" fill="#6366f1" opacity="0.05"/>
+    <rect x="228" y="307" width="36" height="32" rx="4" fill="#6366f1" opacity="0.2"/>
+    <rect x="273" y="307" width="36" height="32" rx="4" fill="#6366f1" opacity="0.3"/>
+    <rect x="318" y="307" width="36" height="32" rx="4" fill="#6366f1" opacity="0.6"/>
+  </g>
+
+  <!-- Annotation for highlighted row -->
+  <line x1="545" y1="240" x2="570" y2="240" stroke="#06b6d4" stroke-width="1.5"/>
+  <text x="575" y="235" fill="#06b6d4" font-size="10" font-weight="600">„öne" (→ schöne)</text>
+  <text x="575" y="250" fill="#06b6d4" font-size="9">schaut auf Python,</text>
+  <text x="575" y="263" fill="#06b6d4" font-size="9">sch, Spr, ache</text>
+
+  <!-- Legend -->
+  <g transform="translate(180, 410)">
+    <rect x="0" y="0" width="360" height="60" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="180" y="18" text-anchor="middle" fill="#475569" font-size="10" font-weight="600">Attention-Gewichte (nach Softmax)</text>
+
+    <!-- Color scale -->
+    <rect x="30" y="30" width="30" height="14" rx="3" fill="#6366f1" opacity="0.05"/>
+    <text x="70" y="41" fill="#64748b" font-size="9">niedrig</text>
+
+    <rect x="120" y="30" width="30" height="14" rx="3" fill="#6366f1" opacity="0.4"/>
+    <text x="160" y="41" fill="#64748b" font-size="9">mittel</text>
+
+    <rect x="210" y="30" width="30" height="14" rx="3" fill="#6366f1" opacity="0.8"/>
+    <text x="250" y="41" fill="#64748b" font-size="9">hoch</text>
+
+    <text x="310" y="41" fill="#94a3b8" font-size="8" font-style="italic">(illustrativ)</text>
+  </g>
+</svg>
+</div>
+
+<h2 id="konkret-was-passiert-bei-schone">Konkret: was passiert bei „schöne"</h2>
+<p>„schöne" hat einen Q-Vektor. Der wird mit den K-Vektoren von allen acht Tokens verglichen. Aus jedem Vergleich kommt eine Zahl raus, ein Ähnlichkeits-Score. Acht Scores insgesamt.</p>
+<p>Wie vergleicht man zwei Vektoren? Ziemlich simpel eigentlich. Du multiplizierst sie Stelle für Stelle und addierst alles zu einer einzigen Zahl auf. Das heißt <a href="skalarprodukt.html">Skalarprodukt</a>. Wenn zwei Vektoren in eine ähnliche Richtung zeigen wird die Zahl groß. Wenn nicht, klein oder sogar negativ.</p>
+<p>Diese acht Scores werden dann in Wahrscheinlichkeiten umgerechnet. Dafür gibt es <a href="softmax.html">Softmax</a>. Was Softmax macht: es nimmt eine Liste von Zahlen, egal wie groß oder klein, und macht daraus Werte zwischen null und eins die zusammen genau Eins ergeben. Also eine Wahrscheinlichkeitsverteilung. Was vorher schon groß war wird relativ groß, was klein war wird sehr klein.</p>
+<p>Im Idealfall kommt für „Python" und „Sprache" was hohes raus, sagen wir 0,4 und 0,3. Für „ist" und „eine" auch noch was. Für den Punkt quasi null.</p>
+<p>Jetzt wird ein neuer „schöne"-Vektor gebaut. Der ist die gewichtete Summe der V-Vektoren von allen acht Tokens. „Python" hat Gewicht 0,4 gekriegt, also fließen 40 Prozent von Pythons V-Vektor da rein.</p>
+<p>In PyTorch:</p>
+<pre><code class="language-python">import torch.nn.functional as F
+
+scores  = Q @ K.transpose(-2, -1) / (4096 ** 0.5)   # [8, 8]
+weights = F.softmax(scores, dim=-1)                 # [8, 8]
+output  = weights @ V                               # [8, 4096]
+</code></pre>
+<p>Das <code>@</code> ist Matrixmultiplikation. Die macht im Prinzip das Skalarprodukt von oben für alle Paare auf einmal. Die Division durch die Wurzel von 4.096 ist nur dafür da dass die Scores nicht zu groß werden und Softmax nicht ausrastet.</p>
+<p>Ergebnis: „schöne" ist nicht mehr das generische „schöne" aus dem Embedding. Es ist jetzt ein „schöne" das weiß dass es um Python geht und dass Sprache hier Programmiersprache meint.</p>
+<p>Das passiert parallel für alle acht Tokens. Jeder kriegt sein eigenes Bild davon wer für ihn wichtig ist.</p>
+<h2 id="noch-mehr-dazu">Noch mehr dazu</h2>
+<p>Die ganze Berechnung läuft nicht einmal sondern parallel mehrfach. Jeder Durchlauf heißt Attention Head. Verschiedene Heads lernen verschiedene Arten von Beziehungen, einer vielleicht Grammatik, einer Bedeutung, einer Positionen. Am Ende werden alle Ergebnisse zusammengeführt. Multi-Head Attention.</p>
+<p>Und das läuft nicht nur einmal pro Satz. Das Modell hat dutzende Layer übereinander und in jedem gibt es neue Attention. „schöne" wird also nicht einmal angereichert sondern viele Male hintereinander, immer feiner.</p>
+<p>Die Beispielgewichte oben sind übrigens ausgedacht. Ich illustrier ein Prinzip, keine echte Messung.</p>
+<h2 id="wo-wir-stehen_2">Wo wir stehen</h2>
+<p>Aus acht isolierten Vektoren sind acht vernetzte Vektoren geworden. „schöne" weiß dass es um Python geht. „Sprache" weiß dass Programmiersprache gemeint ist. Das ist das Herzstück des Transformers.</p>
+<h1 id="station-4-nach-der-attention">Station 4: Nach der Attention</h1>
+<p>Attention war sowas wie ein Meeting. Alle acht Tokens haben sich angeguckt, jeder hat mitgenommen was für ihn relevant war.</p>
+<p>Aber Infos aufnehmen und Infos verarbeiten sind zwei verschiedene Sachen. Kennst du, du kommst aus nem Gespräch und checkst erst Stunden später was du eigentlich davon halten sollst.</p>
+<p>Den Vektoren gehts genauso. Die haben miteinander geredet aber keiner hat das Gehörte verarbeitet. Das macht die zweite Hälfte des Transformer-Blocks. Heißt Feed-Forward Network, FFN, manchmal auch MLP.</p>
+<div class="svg-embed"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 620" font-family="Inter, -apple-system, sans-serif">
+  <rect width="500" height="620" fill="none"/>
+
+  <!-- Title -->
+  <text x="250" y="22" text-anchor="middle" fill="#64748b" font-size="12" font-weight="600">EIN TRANSFORMER-BLOCK (×80)</text>
+
+  <!-- Input -->
+  <rect x="160" y="40" width="180" height="32" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="250" y="61" text-anchor="middle" fill="#475569" font-size="11" font-weight="500">Input x  [8, 4096]</text>
+
+  <!-- Arrow -->
+  <path d="M250 72 L250 95" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-sm)"/>
+
+  <!-- LayerNorm 1 -->
+  <rect x="180" y="95" width="140" height="28" rx="14" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1"/>
+  <text x="250" y="114" text-anchor="middle" fill="#475569" font-size="10">LayerNorm</text>
+
+  <!-- Arrow -->
+  <path d="M250 123 L250 148" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-sm)"/>
+
+  <!-- Attention block -->
+  <rect x="140" y="148" width="220" height="75" rx="10" fill="#06b6d4" opacity="0.12" stroke="#06b6d4" stroke-width="1.5"/>
+  <text x="250" y="172" text-anchor="middle" fill="#0891b2" font-size="12" font-weight="700">Multi-Head Attention</text>
+  <text x="250" y="190" text-anchor="middle" fill="#0e7490" font-size="9">Q = W_q(x)   K = W_k(x)   V = W_v(x)</text>
+  <text x="250" y="206" text-anchor="middle" fill="#0e7490" font-size="9">softmax(QK^T / √d) · V</text>
+
+  <!-- Arrow from attention -->
+  <path d="M250 223 L250 248" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-sm)"/>
+
+  <!-- Residual connection 1 -->
+  <!-- Branch line from input -->
+  <path d="M160 56 L80 56 L80 260 L160 260" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,3" fill="none" marker-end="url(#arr-gold-sm)"/>
+
+  <!-- Add node 1 -->
+  <circle cx="250" cy="260" r="16" fill="#f59e0b" opacity="0.15" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="250" y="265" text-anchor="middle" fill="#d97706" font-size="14" font-weight="700">+</text>
+  <text x="290" y="265" fill="#d97706" font-size="9" font-weight="500">Residual</text>
+
+  <!-- Arrow -->
+  <path d="M250 276 L250 300" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-sm)"/>
+
+  <!-- LayerNorm 2 -->
+  <rect x="180" y="300" width="140" height="28" rx="14" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1"/>
+  <text x="250" y="319" text-anchor="middle" fill="#475569" font-size="10">LayerNorm</text>
+
+  <!-- Arrow -->
+  <path d="M250 328 L250 353" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-sm)"/>
+
+  <!-- FFN block -->
+  <rect x="140" y="353" width="220" height="75" rx="10" fill="#10b981" opacity="0.12" stroke="#10b981" stroke-width="1.5"/>
+  <text x="250" y="377" text-anchor="middle" fill="#059669" font-size="12" font-weight="700">Feed-Forward (FFN)</text>
+  <text x="250" y="395" text-anchor="middle" fill="#047857" font-size="9">Linear(4096 → 16384)</text>
+  <text x="250" y="411" text-anchor="middle" fill="#047857" font-size="9">GELU → Linear(16384 → 4096)</text>
+
+  <!-- Arrow from FFN -->
+  <path d="M250 428 L250 453" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-sm)"/>
+
+  <!-- Residual connection 2 -->
+  <path d="M160 260 L50 260 L50 465 L160 465" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,3" fill="none" marker-end="url(#arr-gold-sm)"/>
+
+  <!-- Add node 2 -->
+  <circle cx="250" cy="465" r="16" fill="#f59e0b" opacity="0.15" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="250" y="470" text-anchor="middle" fill="#d97706" font-size="14" font-weight="700">+</text>
+  <text x="290" y="470" fill="#d97706" font-size="9" font-weight="500">Residual</text>
+
+  <!-- Arrow to output -->
+  <path d="M250 481 L250 510" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr-sm)"/>
+
+  <!-- Output -->
+  <rect x="160" y="510" width="180" height="32" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="250" y="531" text-anchor="middle" fill="#475569" font-size="11" font-weight="500">Output  [8, 4096]</text>
+
+  <!-- Next block arrow -->
+  <path d="M250 542 L250 565" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="250" y="580" text-anchor="middle" fill="#94a3b8" font-size="10" font-style="italic">→ nächster Block (×79 weitere)</text>
+
+  <!-- Side annotation: Attention = Mischen -->
+  <rect x="380" y="160" width="100" height="22" rx="4" fill="#06b6d4" opacity="0.1"/>
+  <text x="430" y="175" text-anchor="middle" fill="#0891b2" font-size="9" font-weight="500">= Mischen</text>
+
+  <!-- Side annotation: FFN = Nachdenken -->
+  <rect x="380" y="375" width="100" height="22" rx="4" fill="#10b981" opacity="0.1"/>
+  <text x="430" y="390" text-anchor="middle" fill="#059669" font-size="9" font-weight="500">= Nachdenken</text>
+
+  <!-- Defs -->
+  <defs>
+    <marker id="arr-sm" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <path d="M0,0 L7,2.5 L0,5" fill="#94a3b8"/>
+    </marker>
+    <marker id="arr-gold-sm" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <path d="M0,0 L7,2.5 L0,5" fill="#f59e0b"/>
+    </marker>
+  </defs>
+</svg>
+</div>
+
+<h2 id="was-das-ffn-macht">Was das FFN macht</h2>
+<p>Klassisches kleines neuronales Netz. Jeder Vektor wird einzeln durchgeschickt. Kein Austausch zwischen den Tokens hier, jeder für sich.</p>
+<p>Der Vektor hat 4.096 Werte. Das FFN bläst ihn erstmal auf, typischerweise aufs Vierfache. Also 16.384 Werte. In diesem breiteren Raum wird eine nicht-lineare Funktion angewendet. Danach wird er wieder auf 4.096 zurückgequetscht.</p>
+<pre><code class="language-python">ffn = nn.Sequential(
+    nn.Linear(4096, 16384),
+    nn.GELU(),
+    nn.Linear(16384, 4096),
+)
+</code></pre>
+<p>Nicht-linear, kurz erklärt. Lineare Funktionen sind Geraden, y = ax + b. Nicht-linear ist alles was krumm ist, Kurven, Knicke, Schwellen. Warum das wichtig ist: wenn du lineare Funktionen hintereinander hängst kommt am Ende immer nur wieder eine einzige lineare Funktion raus. Das heißt hundert lineare Schichten können nicht mehr als eine einzige. Wär ja Quatsch. Erst wenn du was Krummes dazwischenpackst wird der Stapel mächtiger als jede einzelne Schicht. Das <a href="gelu.html">GELU</a> da oben ist so eine krumme Funktion. Du siehst auch ReLU oder SiLU in anderen Modellen, alles Varianten vom gleichen Prinzip.</p>
+<p>Was passiert da inhaltlich? Ehrliche Antwort: niemand weiß es genau. Aber Forschung der letzten Jahre zeigt dass im FFN viel von dem steckt was man „das Wissen" eines Modells nennen würde. Dass Paris die Hauptstadt von Frankreich ist lebt wahrscheinlich nicht in der Attention sondern in den FFN-Schichten. Die funktionieren wie ein riesiges gelerntes Nachschlagewerk, das auf jedes Token einzeln angewendet wird.</p>
+<p>Wenn Attention das Mischen ist, ist FFN das Nachdenken.</p>
+<h2 id="residual-connections"><a href="residual-connection.html">Residual Connections</a></h2>
+<p>Wichtiges Detail. Der neue Vektor der aus Attention oder FFN rauskommt ersetzt nicht den alten. Er wird dazu addiert.</p>
+<pre><code class="language-python">x = x + attention(x)
+x = x + ffn(x)
+</code></pre>
+<p>Stell dir vor ein Lektor streicht nichts in deinem Text sondern schreibt nur Notizen an den Rand. Das Original bleibt, die neuen Erkenntnisse kommen dazu.</p>
+<p>Warum? Weil tiefe neuronale Netze ohne diesen Trick schwer zu trainieren sind. Wenn jeder Layer den Input komplett ersetzt vergessen die hinteren Layer was am Anfang da war. Mit Residual Connections gibt es einen durchgehenden Pfad wo die ursprüngliche Info immer mitläuft. Jede Schicht muss nur kleine Korrekturen anbringen statt alles neu zu erfinden.</p>
+<p>Der Trick kommt aus einem Paper von 2015 über ResNets, ursprünglich für Bildverarbeitung. Heute Standard in allem was tief ist. Wirst du in PyTorch überall sehen.</p>
+<h2 id="layernorm"><a href="layernorm.html">LayerNorm</a></h2>
+<p>Noch so ein Ding. Vor oder nach Attention und FFN sitzt eine Operation namens Layer Normalization. Die macht was Schlichtes: sie sorgt dafür dass die Zahlen im Vektor nicht aus dem Ruder laufen.</p>
+<p>Was heißt normalisieren? Du rechnest den Durchschnitt aller Werte im Vektor aus, guckst wie weit sie typischerweise davon abweichen, und schiebst und skalierst alles so dass Durchschnitt ungefähr null ist und die Streuung ungefähr eins. Das wars.</p>
+<p>Wenn du durch viele Layer rechnest neigen Werte dazu entweder riesig zu werden oder gegen null zu schrumpfen. Beides ist schlecht fürs Training. LayerNorm kalibriert immer wieder neu. Nicht spannend aber ohne das würde am Ende nichts mehr funktionieren.</p>
+<h2 id="und-jetzt-80-mal-von-vorne">Und jetzt 80 mal von vorne</h2>
+<p>Alles was ich gerade beschrieben hab ist EIN Transformer-Block. Attention plus FFN plus Residuals plus LayerNorms.</p>
+<p>In einem echten LLM wird das nicht einmal gemacht sondern dutzende bis hunderte Male hintereinander. GPT-2 hatte 12 solche Blöcke. GPT-3 hatte 96. Aktuelle große Modelle haben so 80 bis über 120.</p>
+<p>Jeder Block nimmt die acht Vektoren vom vorherigen Block und schickt acht neue weiter. Gleiche Form, anderer Inhalt. Mit jedem Schritt feiner.</p>
+<p>In den unteren Blöcken passiert eher syntaktisches Zeug. Welches Token gehört zu welchem, welche Endung passt wohin. Je weiter oben desto abstrakter. Da gehts um Bedeutung, Weltwissen, das was wir verstehen nennen würden.</p>
+<h2 id="wo-wir-stehen_3">Wo wir stehen</h2>
+<p>Nach 80 Blöcken haben wir acht extrem dichte Vektoren. Gleiche Form wie nach dem Embedding, acht mal 4.096, aber der Inhalt ist von oberflächlich zu tief gewandert.</p>
+<p>Jetzt muss daraus ein Wort werden.</p>
+<h1 id="station-5-wie-ein-wort-rauskommt">Station 5: Wie ein Wort rauskommt</h1>
+<p>Wir haben acht Vektoren die durch 80 Transformer-Blöcke gelaufen sind. Was da drin steht können wir nicht lesen. Aber das Modell muss jetzt was Konkretes draus machen. Ein Token. Das nächste Token nach dem Punkt.</p>
+<h2 id="vom-vektor-zur-wortliste">Vom Vektor zur Wortliste</h2>
+<p>Der letzte der acht Vektoren steht für den gesamten bisherigen Text. Aus dem wird die Vorhersage gebaut.</p>
+<p>Dafür gibts den LM-Head, Language Model Head. Konzeptuell das Gegenteil vom Embedding.</p>
+<p>Beim Embedding hatten wir eine Tabelle mit 150.000 Zeilen, jede ein 4.096-Vektor, und haben für jedes Token die passende Zeile rausgeholt.</p>
+<p>Beim LM-Head wird der finale Vektor mit jeder Zeile dieser Tabelle verglichen. Für jede Zeile fällt ein Score raus, wie gut der Vektor zu diesem Token passt. Am Ende: 150.000 Scores. Einer pro Token im Vokabular.</p>
+<pre><code class="language-python">lm_head = nn.Linear(4096, 150_000)
+logits  = lm_head(final_vector)   # [150000]
+</code></pre>
+<p>Diese Scores heißen Logits. Können beliebig groß oder klein sein, positiv oder negativ.</p>
+<div class="svg-embed"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 350" font-family="Inter, -apple-system, sans-serif">
+  <rect width="650" height="350" fill="none"/>
+
+  <!-- Title -->
+  <text x="325" y="25" text-anchor="middle" fill="#64748b" font-size="12" font-weight="600">OUTPUT: Wahrscheinlichkeitsverteilung über 150.000 Token</text>
+
+  <!-- Bar chart area -->
+  <g transform="translate(80, 50)">
+    <!-- Y axis -->
+    <line x1="0" y1="0" x2="0" y2="200" stroke="#cbd5e1" stroke-width="1"/>
+    <text x="-10" y="5" text-anchor="end" fill="#94a3b8" font-size="8">12%</text>
+    <text x="-10" y="55" text-anchor="end" fill="#94a3b8" font-size="8">9%</text>
+    <text x="-10" y="105" text-anchor="end" fill="#94a3b8" font-size="8">6%</text>
+    <text x="-10" y="155" text-anchor="end" fill="#94a3b8" font-size="8">3%</text>
+    <text x="-10" y="203" text-anchor="end" fill="#94a3b8" font-size="8">0%</text>
+    <!-- Grid lines -->
+    <line x1="0" y1="0" x2="500" y2="0" stroke="#f1f5f9" stroke-width="0.5"/>
+    <line x1="0" y1="50" x2="500" y2="50" stroke="#f1f5f9" stroke-width="0.5"/>
+    <line x1="0" y1="100" x2="500" y2="100" stroke="#f1f5f9" stroke-width="0.5"/>
+    <line x1="0" y1="150" x2="500" y2="150" stroke="#f1f5f9" stroke-width="0.5"/>
+    <line x1="0" y1="200" x2="500" y2="200" stroke="#cbd5e1" stroke-width="1"/>
+
+    <!-- Bars -->
+    <!-- " Sie" - 11% -->
+    <rect x="15" y="17" width="40" height="183" rx="4" fill="#6366f1" opacity="0.85"/>
+    <text x="35" y="10" text-anchor="middle" fill="#6366f1" font-size="9" font-weight="600">11%</text>
+    <text x="35" y="218" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">" Sie"</text>
+
+    <!-- "\n" - 10% -->
+    <rect x="70" y="33" width="40" height="167" rx="4" fill="#8b5cf6" opacity="0.8"/>
+    <text x="90" y="26" text-anchor="middle" fill="#8b5cf6" font-size="9" font-weight="600">10%</text>
+    <text x="90" y="218" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">"\n"</text>
+
+    <!-- " Schön" - 7% -->
+    <rect x="125" y="83" width="40" height="117" rx="4" fill="#06b6d4" opacity="0.75"/>
+    <text x="145" y="76" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="600">7%</text>
+    <text x="145" y="218" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">" Schön"</text>
+
+    <!-- " Ich" - 6% -->
+    <rect x="180" y="100" width="40" height="100" rx="4" fill="#10b981" opacity="0.75"/>
+    <text x="200" y="93" text-anchor="middle" fill="#10b981" font-size="9" font-weight="600">6%</text>
+    <text x="200" y="218" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">" Ich"</text>
+
+    <!-- <eos> - 6% -->
+    <rect x="235" y="100" width="40" height="100" rx="4" fill="#10b981" opacity="0.65"/>
+    <text x="255" y="93" text-anchor="middle" fill="#10b981" font-size="9" font-weight="600">6%</text>
+    <text x="255" y="218" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">⟨eos⟩</text>
+
+    <!-- " Aber" - 4% -->
+    <rect x="290" y="133" width="40" height="67" rx="4" fill="#f59e0b" opacity="0.7"/>
+    <text x="310" y="126" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="600">4%</text>
+    <text x="310" y="218" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">" Aber"</text>
+
+    <!-- " Das" - 4% -->
+    <rect x="345" y="133" width="40" height="67" rx="4" fill="#f59e0b" opacity="0.6"/>
+    <text x="365" y="126" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="600">4%</text>
+    <text x="365" y="218" text-anchor="middle" fill="#475569" font-size="9" font-weight="500">" Das"</text>
+
+    <!-- Long tail indicator -->
+    <rect x="400" y="170" width="25" height="30" rx="3" fill="#94a3b8" opacity="0.3"/>
+    <rect x="430" y="180" width="20" height="20" rx="3" fill="#94a3b8" opacity="0.2"/>
+    <rect x="455" y="185" width="18" height="15" rx="3" fill="#94a3b8" opacity="0.15"/>
+    <rect x="478" y="190" width="15" height="10" rx="3" fill="#94a3b8" opacity="0.1"/>
+    <text x="450" y="218" text-anchor="middle" fill="#94a3b8" font-size="8" font-style="italic">... +149.993 weitere</text>
+  </g>
+
+  <!-- Temperature comparison -->
+  <g transform="translate(60, 280)">
+    <rect x="0" y="0" width="530" height="55" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+
+    <!-- Low temp -->
+    <circle cx="30" cy="28" r="10" fill="#3b82f6" opacity="0.15" stroke="#3b82f6" stroke-width="1"/>
+    <text x="30" y="32" text-anchor="middle" fill="#2563eb" font-size="10" font-weight="700">❄</text>
+    <text x="50" y="24" fill="#475569" font-size="9" font-weight="600">T = 0.3</text>
+    <text x="50" y="38" fill="#64748b" font-size="8">→ „ Sie" fast sicher (35%)</text>
+
+    <!-- Normal temp -->
+    <circle cx="210" cy="28" r="10" fill="#f59e0b" opacity="0.15" stroke="#f59e0b" stroke-width="1"/>
+    <text x="210" y="32" text-anchor="middle" fill="#d97706" font-size="9" font-weight="700">~</text>
+    <text x="230" y="24" fill="#475569" font-size="9" font-weight="600">T = 1.0</text>
+    <text x="230" y="38" fill="#64748b" font-size="8">→ wie oben dargestellt</text>
+
+    <!-- High temp -->
+    <circle cx="390" cy="28" r="10" fill="#ef4444" opacity="0.15" stroke="#ef4444" stroke-width="1"/>
+    <text x="390" y="33" text-anchor="middle" fill="#dc2626" font-size="10" font-weight="700">🔥</text>
+    <text x="410" y="24" fill="#475569" font-size="9" font-weight="600">T = 1.5</text>
+    <text x="410" y="38" fill="#64748b" font-size="8">→ fast gleichverteilt, wild</text>
+  </g>
+</svg>
+</div>
+
+<h2 id="aus-scores-werden-wahrscheinlichkeiten">Aus Scores werden Wahrscheinlichkeiten</h2>
+<p>Logits sind noch nicht brauchbar. Die müssen in Wahrscheinlichkeiten umgewandelt werden. Wieder Softmax, die Operation die wir schon bei Attention hatten. Nimmt 150.000 rohe Scores und macht 150.000 Werte draus die zusammen Eins ergeben.</p>
+<pre><code class="language-python">probs = F.softmax(logits, dim=-1)
+</code></pre>
+<p>Für unseren Satz nach dem Punkt könnte das so aussehen:</p>
+<pre><code>&quot; Sie&quot;        0,11
+&quot;\n&quot;           0,10
+&quot; Schön&quot;      0,07
+&quot; Ich&quot;        0,06
+&quot;&lt;eos&gt;&quot;       0,06
+&quot; Aber&quot;       0,04
+&quot; Das&quot;        0,04
+...
+</code></pre>
+<p>Plus 150.000 weitere Tokens, alle mit winzigen Wahrscheinlichkeiten.</p>
+<p>Kein Token liegt weit vorn. Verteilung ist flach. Passt auch, nach einem fertigen Satz mit Punkt gibt es halt viele mögliche Fortsetzungen. Neuer Satz, Vorschlag, Ende des Texts. Das Modell ist sich unsicher und die Verteilung zeigt das.</p>
+<h2 id="einfach-das-wahrscheinlichste-nehmen">Einfach das wahrscheinlichste nehmen?</h2>
+<p>Könnte man machen. Heißt Greedy Decoding. Funktioniert, aber die Texte werden schnell langweilig. Das Modell findet einen sicheren Pfad und läuft den immer wieder. Loops, Wiederholungen, da ist skein Leben drin.</p>
+<p>Stattdessen wird gewürfelt. Wenn „ Sie" 11 Prozent hat, wird in 11 Prozent der Fälle „ Sie" gezogen. 10 Prozent für Zeilenumbruch, wird in 10 Prozent gezogen. Und so weiter.</p>
+<pre><code class="language-python">next_token = torch.multinomial(probs, num_samples=1)
+</code></pre>
+<p><code>multinomial</code> macht genau das. Du gibst Wahrscheinlichkeiten rein und kriegst einen zufällig gezogenen Index zurück, gewichtet nach diesen Wahrscheinlichkeiten. Das nennt sich Sampling.</p>
+<h2 id="temperatur"><a href="temperatur.html">Temperatur</a></h2>
+<p>Der bekannteste Regler. Eine Zahl die die Logits vor der Softmax teilt. Klingt nach nix, ändert aber alles.</p>
+<pre><code class="language-python">probs = F.softmax(logits / temperature, dim=-1)
+</code></pre>
+<p>Temperatur 1: Verteilung bleibt wie sie ist.</p>
+<p>Temperatur runter, zB 0,3: Unterschiede werden krasser. Was schon wahrscheinlich war wird noch wahrscheinlicher. Aus 11 Prozent für „ Sie" werden vielleicht 35. Bei Temperatur 0 ist es reines Greedy, wahrscheinlichstes Token kriegt 100 Prozent.</p>
+<p>Temperatur hoch, zB 1,5: Verteilung wird flacher. Aus 11 und 4 Prozent werden vielleicht 8 und 6. Sachen die vorher keine Chance hatten kriegen plötzlich eine.</p>
+<p>Niedrige Temperatur = konservativ und vorhersagbar. Hohe Temperatur = experimentell und überraschend. Für Fakten-Aufgaben niedrig, für kreatives Schreiben hoch. Fertig.</p>
+<h2 id="top-k-und-top-p">Top-k und Top-p</h2>
+<p>Problem bei hoher Temperatur: auch totaler Unsinn kann in die Auswahl rutschen. „ Schraubendreher" hat ne winzige Wahrscheinlichkeit, nicht null, und bei genug Würfen taucht es irgendwann auf.</p>
+<p>Deshalb gibts zwei Regler die das Kandidatenfeld einschränken bevor gewürfelt wird.</p>
+<p>Top-k ist hart. Bei k=50 kommen nur die Top 50 Token in Frage. Rest wird auf null gesetzt.</p>
+<p>Top-p ist weicher. Bei p=0,9 nimmst du so viele der wahrscheinlichsten Token bis ihre Wahrscheinlichkeiten zusammen 90 Prozent ergeben. Kann 5 Token sein wenn die Verteilung scharf ist oder 200 wenn sie flach ist. Passt sich automatisch an.</p>
+<p>Top-p ist heute Standard. Übliche Kombi: Temperatur 0,7, Top-p 0,9.</p>
+<p>Dann gibts noch Repetition Penalty und so Zeug das verhindert dass das Modell sich wiederholt. Wen juckt das im Detail, wichtig ist dass es existiert.</p>
+<h2 id="der-loop">Der Loop</h2>
+<p>Wir haben so getan als würde der Satz einmal durchs Modell gehen und am Ende fällt ein Wort raus. Stimmt nicht ganz.</p>
+<p>Wenn das Modell „ Sie" gewählt hat ist es nicht fertig. Es soll ja weiter schreiben. Also wird „ Sie" hinten angehängt, aus „Python ist eine schöne Sprache." wird „Python ist eine schöne Sprache. Sie", und die ganze Reise geht von vorne los. Das neue Token muss durch alle 80 Blöcke. Am Ende wieder eine Verteilung, wieder würfeln. Vielleicht „ ist". Dann „ einfach". Und so weiter.</p>
+<pre><code class="language-python">while not done:
+    logits      = model(input_ids)[:, -1, :]
+    probs       = F.softmax(logits / temperature, dim=-1)
+    next_token  = torch.multinomial(probs, num_samples=1)
+    input_ids   = torch.cat([input_ids, next_token], dim=-1)
+    done        = (next_token.item() == eos_id)
+</code></pre>
+<p>Das heißt <a href="autoregressive-generierung.html">autoregressive Generierung</a>. Jeder Schritt ein Token. Der ganze Apparat aus 80 Blöcken läuft einmal pro Token. Ein Absatz bedeutet hunderte komplette Durchläufe.</p>
+<p>Deshalb sind LLMs so rechenintensiv. Nicht weil ein Durchlauf teuer wäre, sondern weil jeder Satz aus vielen Durchläufen besteht.</p>
+<p>Und deshalb wird in Token abgerechnet. Ein Token raus = ein Durchlauf durchs ganze Modell. Token sind nicht nur was rein und raus geht. Token sind das was bezahlt wird.</p>
+<h1 id="und-das-wars">Und das wars</h1>
+<p>„Large Language Model" ist eigentlich ein irreführender Name. Ehrlicher wäre meiner Meinung nach „Large Token Model".</p>
+<p>Was das Modell verarbeitet sind keine Wörter und keine Sprache. Es sind Token die zu Vektoren werden, die sich gegenseitig betrachten, die durch dutzende Layer geschoben werden, die am Ende eine Verteilung über mögliche nächste Token erzeugen aus der eins gewürfelt wird. Dann von vorne.</p>
+<p>Sprache ist die Form in der wir mit dem Modell reden. Token sind die Form in der das Modell rechnet.</p>
+<p>Wenn du jetzt in PyTorch ein <code>nn.Embedding</code>, <code>nn.Linear</code> oder <code>F.softmax</code> siehst weißt du was es tut und wo es in der Reise steht. Und dann kannst du anfangen dir den ganzen Kram selber zusammenzubauen.</p>
+<p>Aus acht Token wurde ein neuntes. Dann ein zehntes. Dann ein elftes.</p>
+    </main>
+</body>
+</html>
