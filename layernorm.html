@@ -173,9 +173,33 @@ th { background: var(--bg-card); font-weight: 600; }
     margin-right: 6px;
 }
 
+/* Mobile nav toggle */
+.mobile-nav-toggle {
+    display: none;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
 /* Responsive */
 @media (max-width: 900px) {
-    .sidebar { display: none; }
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 999;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .mobile-nav-toggle { display: block; }
     .content { margin-left: 0; padding: 24px; width: 100%; }
 }
 
@@ -188,7 +212,7 @@ li { margin-bottom: 6px; }
 </style>
 </head>
 <body>
-    <nav class="sidebar">
+    <nav class="sidebar" id="sidebar">
         <h2>Notes</h2>
         <a href="die-reise-eines-satzes-durch-ein-llm.html" class="main-link">Die Reise eines Satzes durch ein LLM</a><hr><a href="attention.html">Attention</a><a href="autoregressive-generierung.html">Autoregressive Generierung</a><a href="byte-pair-encoding.html">Byte Pair Encoding</a><a href="embedding.html">Embedding</a><a href="gelu.html">GELU</a><a href="layernorm.html" class="active">LayerNorm</a><a href="residual-connection.html">Residual Connection</a><a href="skalarprodukt.html">Skalarprodukt</a><a href="softmax.html">Softmax</a><a href="temperatur.html">Temperatur</a><a href="tensor.html">Tensor</a><a href="nn-linear.html">nn.Linear</a>
     </nav>
@@ -228,5 +252,6 @@ x_normalized = norm(x)  # Shape bleibt [8, 4096]
 <li><a href="residual-connection.html">Residual Connection</a> – sitzt immer direkt davor oder danach</li>
 </ul>
     </main>
+    <button class="mobile-nav-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Navigation">☰</button>
 </body>
 </html>
